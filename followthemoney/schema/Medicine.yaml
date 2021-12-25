@@ -1,0 +1,16 @@
+Medicine:
+  label: "Medicine"
+  plural: "Medicines"
+  description: >
+    Brief Information About Medicines
+  extends: Identification
+  matchable: false
+  featured:
+    - name
+  required:
+    - name
+  caption:
+    - name
+  properties:
+    name:
+      label: "Medicine Name"

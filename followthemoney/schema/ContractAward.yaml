@@ -2,10 +2,13 @@ ContractAward:
   label: "Contract award"
   plural: "Contract awards"
   description: "A contract or contract lot as awarded to a supplier."
+  matchable: false
   extends:
     - Value
     - Interest
-  matchable: false
+  required:
+    - supplier
+    - contract
   featured:
     - supplier
     - contract
@@ -14,7 +17,10 @@ ContractAward:
     - decisionReason
   edge:
     source: contract
+    label: "awarded to"
     target: supplier
+    directed: true
+    caption: lotNumber
   properties:
     supplier:
       label: "Supplier"

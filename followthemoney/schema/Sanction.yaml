@@ -10,20 +10,30 @@ Sanction:
     - program
     - startDate
     - endDate
+  required:
+    - entity
   caption:
     - program
   properties:
     entity:
       label: "Entity"
       reverse:
-        name: sanctionEntity
+        name: sanctions
         label: "Sanctions"
       type: entity
       range: Thing
     authority:
       label: "Authority"
+    authorityId:
+      label: "Authority-issued identifier"
+      type: identifier
+    unscId:
+      label: "UN SC identifier"
+      type: identifier
     program:
       label: "Program"
+    provisions:
+      label: "Scope of sanctions"
     status:
       label: "Status"
     duration:
@@ -34,3 +44,6 @@ Sanction:
     country:
       label: "Country"
       type: country
+    listingDate:
+      label: "Listing date"
+      type: date

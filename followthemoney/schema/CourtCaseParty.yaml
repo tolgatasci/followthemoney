@@ -7,11 +7,17 @@ CourtCaseParty:
     - party
     - case
     - role
+  required:
+    - case
+    - party
   edge:
     source: party
+    label: "involved in"
     target: case
+    directed: true
+    caption: role
   properties:
-    party: 
+    party:
       label: "Party"
       reverse:
         name: courtCase

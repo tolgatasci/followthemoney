@@ -1,8 +1,9 @@
 Passport:
   label: "Passport"
   plural: "Passports"
-  description: "Passport"
-  extends: Interval
+  description: >
+    An passport held by a person.
+  extends: Identification
   matchable: false
   featured:
     - passportNumber
@@ -11,20 +12,14 @@ Passport:
     - holder
     - startDate
     - endDate
+  required:
+    - holder
+    - passportNumber
+    - number
   caption:
     - passportNumber
+    - number
   properties:
-    holder:
-      label: "Document holder"
-      type: entity
-      range: LegalEntity
-      reverse:
-        name: passport
-    type:
-      label: "Document type"
-    country:
-      label: "Country"
-      type: country
     passportNumber:
       label: "Passport number"
       type: identifier
@@ -33,7 +28,7 @@ Passport:
     givenName:
       label: "Given name"
     birthDate:
-      label: "Date of birth"
+      label: "Birth date"
       type: date
     birthPlace:
       label: "Place of birth"
@@ -42,5 +37,3 @@ Passport:
     personalNumber:
       label: "Personal number"
       type: identifier
-    authority:
-      label: "Authority"

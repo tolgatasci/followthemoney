@@ -1,75 +1,83 @@
 import countrynames
-from rdflib import URIRef
+from typing import Optional, TYPE_CHECKING
+from babel.core import Locale  # type: ignore
 
-from followthemoney.types.common import PropertyType
-from followthemoney.util import gettext, get_locale
-from followthemoney.util import sanitize_text, defer as _
+from followthemoney.rdf import URIRef, Identifier
+from followthemoney.types.common import EnumType, EnumValues
+from followthemoney.util import gettext, defer as _
+
+if TYPE_CHECKING:
+    from followthemoney.proxy import EntityProxy
 
 
-class CountryType(PropertyType):
-    name = 'country'
-    group = 'countries'
-    label = _('Country')
-    plural = _('Countries')
+class CountryType(EnumType):
+    """Properties to define countries and territories. This is completely
+    descriptive and needs to deal with data from many origins, so we support
+    a number of unusual and controversial designations (e.g. the Soviet Union,
+    Transnistria, Somaliland, Kosovo)."""
+
+    name = "country"
+    group = "countries"
+    label = _("Country")
+    plural = _("Countries")
     matchable = True
 
-    def __init__(self, *args):
-        self._names = {}
-        self.codes = self.names.keys()
+    def _locale_names(self, locale: Locale) -> EnumValues:
+        # extra territories that OCCRP is interested in.
+        names = {
+            "zz": gettext("Global"),
+            "eu": gettext("European Union"),
+            "zr": gettext("Zaire"),
+            # Overwrite "Czechia" label:
+            "cz": gettext("Czech Republic"),
+            "xk": gettext("Kosovo"),
+            "dd": gettext("East Germany"),
+            "yucs": gettext("Yugoslavia"),
+            "csxx": gettext("Serbia and Montenegro"),
+            "cshh": gettext("Czechoslovakia"),
+            "suhh": gettext("Soviet Union"),
+            "ge-ab": gettext("Abkhazia"),
+            "x-so": gettext("South Ossetia"),
+            "so-som": gettext("Somaliland"),
+            "cy-trnc": gettext("Northern Cyprus"),
+            "az-nk": gettext("Nagorno-Karabakh"),
+            "cn-xz": gettext("Tibet"),
+            "gg-srk": gettext("Sark"),
+            "gb-wls": gettext("Wales"),
+            "gb-sct": gettext("Scotland"),
+            "gb-nir": gettext("Northern Ireland"),
+            "md-pmr": gettext("Transnistria"),
+        }
+        for code, label in locale.territories.items():
+            code = code.lower()
+            if code in names:
+                continue
+            try:
+                int(code)
+            except ValueError:
+                names[code] = label
+        return names
 
-    @property
-    def names(self):
-        locale = get_locale()
-        if locale not in self._names:
-            # extra territories that OCCRP is interested in.
-            self._names[locale] = {
-                'zz': gettext('Global'),
-                'eu': gettext('European Union'),
-                # Overwrite "Czechia" label:
-                'cz': gettext('Czech Republic'),
-                'xk': gettext('Kosovo'),
-                'yucs': gettext('Yugoslavia'),
-                'csxx': gettext('Serbia and Montenegro'),
-                'suhh': gettext('Soviet Union'),
-                'ge-ab': gettext('Abkhazia'),
-                'x-so': gettext('South Ossetia'),
-                'so-som': gettext('Somaliland'),
-                'gb-wls': gettext('Wales'),
-                'gb-sct': gettext('Scotland'),
-                'md-pmr': gettext('Transnistria')
-            }
-            for code, label in locale.territories.items():
-                try:
-                    int(code)
-                except ValueError:
-                    self._names[locale][code.lower()] = label
-        return self._names[locale]
-
-    def validate(self, country, **kwargs):
-        country = sanitize_text(country)
-        if country is None:
-            return False
-        return country.lower() in self.codes
-
-    def clean_text(self, country, guess=False, **kwargs):
+    def clean_text(
+        self,
+        text: str,
+        fuzzy: bool = False,
+        format: Optional[str] = None,
+        proxy: Optional["EntityProxy"] = None,
+    ) -> Optional[str]:
         """Determine a two-letter country code based on an input.
 
         The input may be a country code, a country name, etc.
         """
-        code = country.lower().strip()
-        if code in self.codes:
-            return code
-        country = countrynames.to_code(country, fuzzy=guess)
-        if country is not None:
-            return country.lower()
+        code = countrynames.to_code(text, fuzzy=fuzzy)
+        if code is not None:
+            lower = code.lower()
+            if lower in self.codes:
+                return lower
+        return None
 
-    def country_hint(self, value):
+    def country_hint(self, value: str) -> str:
         return value
 
-    def rdf(self, value):
-        return URIRef('iso-3166-1:%s' % value)
-
-    def to_dict(self):
-        data = super(CountryType, self).to_dict()
-        data['values'] = self.names
-        return data
+    def rdf(self, value: str) -> Identifier:
+        return URIRef(f"iso-3166-1:{value}")

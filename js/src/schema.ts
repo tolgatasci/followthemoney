@@ -4,6 +4,10 @@ import { Model } from './model'
 interface IEdgeSpecification {
   source: string
   target: string
+  directed: boolean
+  label?: string
+  caption: string[]
+  required?: string[]
 }
 
 export type SchemaSpec = string | null | undefined | Schema;
@@ -13,14 +17,15 @@ export interface ISchemaDatum {
   plural: string
   schemata: string[]
   extends: string[]
-  required?: boolean
   abstract?: boolean
+  hidden?: boolean
   matchable?: boolean
   generated?: boolean
   description?: string
   edge?: IEdgeSpecification
   featured?: string[]
   caption?: string[]
+  required?: string[]
   properties: {
     [x: string]: IPropertyDatum
   }
@@ -35,6 +40,7 @@ export class Schema {
   public readonly label: string
   public readonly plural: string
   public readonly abstract: boolean
+  public readonly hidden: boolean
   public readonly matchable: boolean
   public readonly generated: boolean
   public readonly description: string | null
@@ -42,9 +48,9 @@ export class Schema {
   public readonly schemata: string[]
   public readonly extends: string[]
   public readonly caption: string[]
+  public readonly required: string[]
   public readonly edge?: IEdgeSpecification
   public readonly isEdge: boolean
-  public readonly isCreateable: boolean
   private properties: Map<string, Property> = new Map()
 
   constructor(model: Model, schemaName: string, config: ISchemaDatum) {
@@ -54,14 +60,15 @@ export class Schema {
     this.plural = config.plural || this.label;
     this.schemata = config.schemata
     this.extends = config.extends
-    this.featured = config.featured || new Array()
-    this.caption = config.caption || new Array()
+    this.featured = config.featured || []
+    this.caption = config.caption || []
+    this.required = config.required || []
     this.abstract = !!config.abstract
+    this.hidden = !!config.hidden
     this.matchable = !!config.matchable
     this.generated = !!config.generated
     this.description = config.description || null
     this.isEdge = !!config.edge
-    this.isCreateable = !(this.abstract || this.generated)
     this.edge = config.edge
 
     Object.entries(config.properties).forEach(
@@ -83,15 +90,37 @@ export class Schema {
     return this.extends.map(name => this.model.getSchema(name))
   }
 
-  getProperties(): Map<string, Property> {
+  getParents(): Array<Schema> {
+    const parents = new Map<string, Schema>()
+    for (const ext of this.getExtends()) {
+      parents.set(ext.name, ext)
+      for (const parent of ext.getParents()) {
+        parents.set(parent.name, parent)
+      }
+    }
+    return Array.from(parents.values())
+  }
+
+  getChildren(): Array<Schema> {
+    const children = new Array<Schema>()
+    for (const schema of this.model.getSchemata()) {
+      const parents = schema.getParents().map(s => s.name)
+      if (parents.indexOf(this.name) !== -1) {
+        children.push(schema)
+      }
+    }
+    return children;
+  }
+
+  getProperties(qualified = false): Map<string, Property> {
     const properties = new Map<string, Property>()
     this.getExtends().forEach((schema) => {
-      schema.getProperties().forEach((prop, name) => {
+      schema.getProperties(qualified).forEach((prop, name) => {
         properties.set(name, prop)
       })
     })
     this.properties.forEach((prop, name) => {
-      properties.set(name, prop)
+      properties.set(qualified ? prop.qname : name, prop)
     })
     return properties
   }
@@ -101,13 +130,13 @@ export class Schema {
       .filter(prop => !prop.hidden && !prop.stub)
   }
 
-  getFeaturedProperties() {
+  getFeaturedProperties(): Array<Property> {
     return this.featured.map(name => this.getProperty(name))
   }
 
   hasProperty(prop: string | Property): boolean {
     if (prop instanceof Property) {
-      return this.getProperties().has(prop.name)
+      return this.getProperties(true).has(prop.qname)
     }
     return this.getProperties().has(prop)
   }
@@ -129,7 +158,7 @@ export class Schema {
     }
   }
 
-  isA(schema: SchemaSpec) {
+  isA(schema: SchemaSpec): boolean {
     try {
       schema = this.model.getSchema(schema)
       return !!~this.schemata.indexOf(schema.name)
@@ -138,8 +167,8 @@ export class Schema {
     }
   }
 
-  isAny(schemata: Array<SchemaSpec>) {
-    for (let schema of schemata) {
+  isAny(schemata: Array<SchemaSpec>): boolean {
+    for (const schema of schemata) {
       if (this.isA(schema)) {
         return true;
       }

@@ -1,23 +1,20 @@
 Thing:
+  # Kein Ding, digga, das Ding hat swing.
+  # Root type of all entities that should be rendered in Aleph.
   abstract: true
   matchable: false
   featured:
     - name
     - country
+  required:
+    - name
+  caption:
+    - name
   properties:
     name:
       label: Name
-      type: name
-      caption: true
-      required: true
+      type: string
       rdf: http://www.w3.org/2004/02/skos/core#prefLabel
-    sameAs:
-      label: "Same as"
-      type: entity
-      range: Thing
-      rdf: http://www.w3.org/2002/07/owl#sameAs
-      reverse:
-        name: sameAs
     summary: # a short one-liner kind of description
       label: Summary
       type: text
@@ -51,6 +48,8 @@ Thing:
     alephUrl:
       label: Aleph URL
       type: url
+      hidden: true
+      matchable: false
     wikipediaUrl:
       label: Wikipedia Article
       type: url
@@ -59,9 +58,19 @@ Thing:
       type: identifier
     keywords:
       label: Keywords
+    topics:
+      label: Topics
+      type: topic
     address:
       label: Address
       type: address
+    addressEntity:
+      label: Address
+      reverse:
+        name: things
+        label: "Located there"
+      type: entity
+      range: Address
     program: # Used by sanctions
       label: Program
     notes:
@@ -71,7 +80,7 @@ Thing:
       label: Source document
       reverse:
         name: proven
-        label: "Extracted entities"
+        label: "Derived entities"
       type: entity
       range: Document
     indexText:
@@ -82,17 +91,9 @@ Thing:
       label: Index text
       hidden: true
       type: text
-    indexUpdatedAt:
-      # This is a leaked abstraction from aleph. This will be used to set
-      # the timestamp of the entity when indexed.
-      label: Index updated at
-      hidden: true
-      matchable: false
-      type: date
     modifiedAt:
       label: "Modified on"
       type: date
-      matchable: false
     retrievedAt:
       label: "Retrieved on"
       type: date

@@ -11,6 +11,9 @@ License:
     - authority
     - contractDate
     - commodities
+  required:
+    - name
+    - authority
   caption:
     - name
   properties:

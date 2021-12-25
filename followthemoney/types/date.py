@@ -1,127 +1,70 @@
-import re
 import os
-import pytz
-from rdflib import Literal
-from rdflib.namespace import XSD
-from datetime import datetime, date
+from datetime import datetime, timezone
+from typing import Optional, TYPE_CHECKING
+from prefixdate import parse, parse_format, Precision
 
 from followthemoney.types.common import PropertyType
+from followthemoney.rdf import XSD, Literal, Identifier
 from followthemoney.util import defer as _
-from followthemoney.util import dampen, sanitize_text
+from followthemoney.util import dampen
+
+if TYPE_CHECKING:
+    from followthemoney.proxy import EntityProxy
 
 
 class DateType(PropertyType):
-    # JS: '^([12]\\d{3}(-[01]?[1-9](-[0123]?[1-9])?)?)?$'
-    DATE_RE = re.compile(r'^([12]\d{3}(-[01]?[0-9](-[0123]?[0-9]([T ]([012]?\d(:\d{1,2}(:\d{1,2}(\.\d{6})?(Z|[-+]\d{2}(:?\d{2})?)?)?)?)?)?)?)?)?$')  # noqa
-    DATE_FULL = re.compile(r'\d{4}-\d{2}-\d{2}.*')
-    CUT_ZEROES = re.compile(r'((\-00.*)|(.00:00:00))$')
-    MONTH_FORMATS = re.compile(r'(%b|%B|%m|%c|%x)')
-    DAY_FORMATS = re.compile(r'(%d|%w|%c|%x)')
-    MAX_LENGTH = 19
-    DATE_PATTERNS_BY_LENGTH = {
-        19: ["%Y-%m-%dT%H:%M:%S"],
-        18: ["%Y-%m-%dT%H:%M:%S"],
-        17: ["%Y-%m-%dT%H:%M:%S"],
-        16: ["%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S"],
-        15: ["%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S"],
-        14: ["%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S"],
-        13: ["%Y-%m-%dT%H", "%Y-%m-%dT%H:%M"],
-        12: ["%Y-%m-%dT%H", "%Y-%m-%dT%H:%M"],
-        11: ["%Y-%m-%dT%H"],
-        10: ["%Y-%m-%d", "%Y-%m-%dT%H"],
-        9: ["%Y-%m-%d"],
-        8: ["%Y-%m-%d"],
-        7: ["%Y-%m"],
-        6: ["%Y-%m"],
-        5: [],
-        4: ["%Y"],
-    }
+    """A date or time stamp. This is based on ISO 8601, but meant to allow for different
+    degrees of precision by specifying a prefix. This means that ``2021``, ``2021-02``,
+    ``2021-02-16``, ``2021-02-16T21``, ``2021-02-16T21:48`` and ``2021-02-16T21:48:52``
+    are all valid values, with an implied precision.
 
-    name = 'date'
-    group = 'dates'
-    label = _('Date')
-    plural = _('Dates')
+    The timezone is always expected to be UTC and cannot be specified otherwise. There is
+    no support for calendar weeks (``2021-W7``) and date ranges (``2021-2024``)."""
+
+    name = "date"
+    group = "dates"
+    label = _("Date")
+    plural = _("Dates")
     matchable = True
 
-    def validate(self, obj, **kwargs):
+    def validate(self, value: str) -> bool:
         """Check if a thing is a valid date."""
-        obj = sanitize_text(obj)
-        if obj is None:
-            return False
-        return self.DATE_RE.match(obj) is not None
+        prefix = parse(value)
+        return prefix.precision != Precision.EMPTY
 
-    def _clean_datetime(self, obj):
-        """Python objects want to be text."""
-        if isinstance(obj, datetime):
-            # if it's not naive, put it on zulu time first:
-            if obj.tzinfo is not None:
-                obj = obj.astimezone(pytz.utc)
-            return obj.isoformat()[:self.MAX_LENGTH]
-        if isinstance(obj, date):
-            return obj.isoformat()
-
-    def _clean_text(self, text):
-        # limit to the date part of a presumed date string
-        # FIXME: this may get us rid of TZ info?
-        text = text[:self.MAX_LENGTH]
-        if not self.validate(text):
-            return None
-        text = text.replace(' ', 'T')
-        # fix up dates like 2017-1-5 into 2017-01-05
-        if not self.DATE_FULL.match(text):
-            parts = text.split('T', 1)
-            date = [p.zfill(2) for p in parts[0].split('-')]
-            parts[0] = '-'.join(date)
-            text = 'T'.join(parts)
-            text = text[:self.MAX_LENGTH]
-        # strip -00-00 from dates because it makes ES barf.
-        text = self.CUT_ZEROES.sub('', text)
-        return text
-
-    def clean(self, text, format=None, **kwargs):
+    def clean_text(
+        self,
+        text: str,
+        fuzzy: bool = False,
+        format: Optional[str] = None,
+        proxy: Optional["EntityProxy"] = None,
+    ) -> Optional[str]:
         """The classic: date parsing, every which way."""
-        # handle date/datetime before converting to text.
-        date = self._clean_datetime(text)
-        if date is not None:
-            return date
-
-        text = sanitize_text(text)
-        if text is None:
-            return
-
         if format is not None:
-            # parse with a specified format
-            try:
-                obj = datetime.strptime(text, format)
-                text = obj.date().isoformat()
-                if self.MONTH_FORMATS.search(format) is None:
-                    text = text[:4]
-                elif self.DAY_FORMATS.search(format) is None:
-                    text = text[:7]
-                return text
-            except Exception:
-                return None
+            return parse_format(text, format).text
+        return parse(text).text
 
-        return self._clean_text(text)
-
-    def _specificity(self, value):
+    def _specificity(self, value: str) -> float:
         return dampen(5, 13, value)
 
-    def compare(self, left, right):
+    def compare(self, left: str, right: str) -> float:
         prefix = os.path.commonprefix([left, right])
         return dampen(4, 10, prefix)
 
-    def rdf(self, value):
+    def rdf(self, value: str) -> Identifier:
         return Literal(value, datatype=XSD.dateTime)
 
-    def to_datetime(self, value):
-        for fmt in self.DATE_PATTERNS_BY_LENGTH.get(len(value), []):
-            try:
-                return datetime.strptime(value, fmt)
-            except Exception:
-                continue
+    def node_id(self, value: str) -> str:
+        return f"date:{value}"
 
-    def to_number(self, value):
+    def to_datetime(self, value: str) -> Optional[datetime]:
+        return parse(value).dt
+
+    def to_number(self, value: str) -> Optional[float]:
         date = self.to_datetime(value)
-        if date is not None:
-            return pytz.utc.localize(date).timestamp()
+        if date is None:
+            return None
+        # We make a best effort all over the app to ensure all times are in UTC.
+        if date.tzinfo is None:
+            date = date.replace(tzinfo=timezone.utc)
+        return date.timestamp()

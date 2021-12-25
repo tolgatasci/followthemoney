@@ -2,10 +2,17 @@ Organization:
   extends: LegalEntity
   label: Organization
   plural: Organizations
+  description: >
+    Any type of incorporated entity that cannot be owned by another (see Company). This
+    might include charities, foundations or state-owned enterprises, depending on their 
+    juristiction.
   matchable: true
   featured:
     - name
-    - legalForm
     - country
+    - legalForm
+    - status
+  required:
+    - name
   caption:
     - name

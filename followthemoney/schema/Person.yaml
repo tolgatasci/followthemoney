@@ -2,17 +2,21 @@ Person:
   extends: LegalEntity
   label: Person
   plural: People
-  description: "An individual"
+  description: >
+    A natural person, as opposed to a corporation of some type.
   matchable: true
   rdf: http://xmlns.com/foaf/0.1/Person
   featured:
     - name
     - nationality
     - birthDate
+  required:
+    - name
   caption:
     - name
     - lastName
     - email
+    - phone
   properties:
     title:
       label: Title
@@ -46,8 +50,17 @@ Person:
     nationality:
       label: Nationality
       type: country
+    passportNumber:
+      label: Passport number
+      type: identifier
+    # Awkward data section below
     gender:
       label: Gender
-    passportNumber:
-      label: Passport
-      type: identifier
+    ethnicity:
+      label: Ethnicity
+    religion:
+      label: Religion
+    political:
+      label: Political association
+    education:
+      label: Education

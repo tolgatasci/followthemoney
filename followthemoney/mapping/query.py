@@ -1,20 +1,27 @@
+from followthemoney.mapping.source import Record, Source
+from typing import TYPE_CHECKING, Any, List, Optional, Set, Dict
+
+from followthemoney.proxy import EntityProxy
 from followthemoney.mapping.entity import EntityMapping
 from followthemoney.mapping.sql import SQLSource
 from followthemoney.mapping.csv import CSVSource
 from followthemoney.exc import InvalidMapping
 
+if TYPE_CHECKING:
+    from followthemoney.model import Model
 
-class QueryMapping(object):
 
-    def __init__(self, model, data, key_prefix=None):
+class QueryMapping:
+    __slots__ = ("model", "data", "refs", "entities", "source")
+
+    def __init__(
+        self, model: "Model", data: Dict[str, Any], key_prefix: Optional[str] = None
+    ) -> None:
         self.model = model
-        self.data = data
-
-        self.refs = set()
-        self.entities = []
-        for name, data in data.get('entities', {}).items():
-            entity = EntityMapping(model, self, name, data,
-                                   key_prefix=key_prefix)
+        self.refs: Set[str] = set()
+        self.entities: List[EntityMapping] = []
+        for name, edata in data.get("entities", {}).items():
+            entity = EntityMapping(model, self, name, edata, key_prefix=key_prefix)
 
             self.entities.append(entity)
             self.refs.update(entity.refs)
@@ -32,7 +39,7 @@ class QueryMapping(object):
         # in dependent entities.
         entities = self.entities
         self.entities = []
-        resolved = set()
+        resolved: Set[str] = set()
         while len(entities) > 0:
             before = len(entities)
             for entity in entities:
@@ -44,16 +51,17 @@ class QueryMapping(object):
             if before == len(entities):
                 raise InvalidMapping("Circular entity dependency detected.")
 
-    @property
-    def source(self):
-        if 'database' in self.data:
-            return SQLSource(self, self.data)
-        elif 'csv_url' in self.data or 'csv_urls' in self.data:
-            return CSVSource(self, self.data)
-        raise InvalidMapping("Cannot determine mapping type")
+        self.source = self._get_source(data)
 
-    def map(self, record):
-        data = {}
+    def _get_source(self, data: Dict[str, Any]) -> Source:
+        if "database" in data:
+            return SQLSource(self, data)
+        if "csv_url" in data or "csv_urls" in data:
+            return CSVSource(self, data)
+        raise InvalidMapping("Cannot determine mapping type: %r" % data)
+
+    def map(self, record: Record) -> Dict[str, EntityProxy]:
+        data: Dict[str, EntityProxy] = {}
         for entity in self.entities:
             mapped = entity.map(record, data)
             if mapped is not None:

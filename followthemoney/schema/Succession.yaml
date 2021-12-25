@@ -8,9 +8,15 @@ Succession:
     - predecessor
     - successor
     - date
-  edge:
+  required:
+    - predecessor
+    - successor
+  edge: # PREDECESSOR preceeds SUCCESSOR
     source: predecessor
+    label: "preceeds"
     target: successor
+    directed: true
+    caption: date
   properties:
     predecessor:
       label: "Predecessor"
@@ -18,7 +24,7 @@ Succession:
       range: LegalEntity
       reverse:
         name: successors
-        label: "Successors" 
+        label: "Successors"
     successor:
       label: "Successor"
       type: entity

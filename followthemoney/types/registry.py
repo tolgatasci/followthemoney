@@ -1,37 +1,52 @@
-from pkg_resources import iter_entry_points
+from banal import ensure_list
+from typing import Iterable, Set, Dict, Type, Union, List, Optional
+
+from followthemoney.types.common import PropertyType
 
 
 class Registry(object):
+    """This registry keeps the processing helpers for all property types
+    in the system. They are instantiated as singletons when the system is first
+    loaded. The registry can be used to get a type, which can itself then
+    clean, validate or format values of that type."""
 
-    def __init__(self):
-        self._types = {}
+    def __init__(self) -> None:
+        self.named: Dict[str, PropertyType] = {}
+        self.matchable: Set[PropertyType] = set()
+        self.types: Set[PropertyType] = set()
+        self.groups: Dict[str, PropertyType] = {}
+        self.pivots: Set[PropertyType] = set()
 
-    def entry_points(self):
-        yield from iter_entry_points('followthemoney.types')
+    def add(self, clazz: Type[PropertyType]) -> None:
+        """Add a singleton class."""
+        type_ = clazz()
+        self.named[clazz.name] = type_
+        self.types.add(type_)
+        if type_.matchable:
+            self.matchable.add(type_)
+        if type_.pivot:
+            self.pivots.add(type_)
+        if type_.group is not None:
+            self.groups[type_.group] = type_
 
-    @property
-    def types(self):
-        for ep in self.entry_points():
-            yield self.get(ep.name)
+    def get(self, name: Union[str, PropertyType]) -> Optional[PropertyType]:
+        """For a given property type name, get its type object. This can also
+        be used via getattr, e.g. ``registry.phone``."""
+        # Allow transparent re-checking.
+        if isinstance(name, PropertyType):
+            return name
+        return self.named.get(name)
 
-    @property
-    def groups(self):
-        if not hasattr(self, '_groups'):
-            self._groups = {}
-            for type_ in self.types:
-                self._groups[type_.group] = type_
-        return self._groups
+    def get_types(
+        self, names: Iterable[Union[str, PropertyType]]
+    ) -> List[PropertyType]:
+        """Get a list of all type names."""
+        names = ensure_list(names)
+        types = [self.get(n) for n in names]
+        return [t for t in types if t is not None]
 
-    def get(self, name):
-        if name not in self._types:
-            for ep in self.entry_points():
-                if ep.name == name:
-                    clazz = ep.load()
-                    self._types[ep.name] = clazz()
-        return self._types.get(name)
+    def __getitem__(self, name: str) -> PropertyType:
+        return self.named[name]
 
-    def __getattr__(self, name):
-        type_ = self.get(name)
-        if type_ is None:
-            raise AttributeError(name)
-        return type_
+    def __getattr__(self, name: str) -> PropertyType:
+        return self.named[name]

@@ -1,6 +1,6 @@
 Representation:
   label: "Representation"
-  pkural: "Representations"
+  plural: "Representations"
   description: "A mediatory, intermediary, middleman, or broker acting on behalf of a legal entity."
   extends: Interest
   matchable: false
@@ -8,9 +8,15 @@ Representation:
     - agent
     - client
     - role
-  edge:
-    source: client
-    target: agent
+  required:
+    - agent
+    - client
+  edge: # AGENT represents CLIENT
+    source: agent
+    label: "represents"
+    target: client
+    directed: true
+    caption: role
   properties:
     agent: # aka representative / incorporation agent
       label: "Agent"
@@ -18,7 +24,7 @@ Representation:
       range: LegalEntity
       reverse:
         name: agencyClient
-        label: "Agency clients"
+        label: "Clients"
     client:
       label: "Client"
       type: entity

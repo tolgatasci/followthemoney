@@ -7,13 +7,20 @@ Contract:
   extends: Asset
   matchable: false
   featured:
-    - name
+    - title
     - amount
     - authority
     - contractDate
+  required:
+    - title
   caption:
+    - title
     - name
+    - procedureNumber
   properties:
+    title:
+      label: "Contract title"
+      type: string
     authority:
       label: "Contract authority"
       plural: "Contract authorities"
@@ -22,6 +29,13 @@ Contract:
         label: "Contracts issued"
       type: entity
       range: LegalEntity
+    project:
+      label: "Project"
+      reverse:
+        name: contracts
+        label: "Contracts"
+      type: entity
+      range: Project
     type:
       label: "Type"
       description: >
@@ -31,9 +45,24 @@ Contract:
       type: date
     procedureNumber:
       label: "Procedure number"
+    procedure:
+      label: "Contract procedure"
     noticeId:
       label: "Contract Award Notice ID"
     numberAwards:
       label: "Number of awards"
+    status:
+      label: "Status"
+    method:
+      label: "Procurement method"
+    criteria:
+      label: Contract award criteria
+    classification:
+      label: Classification
+      type: text
     cancelled:
       label: "Cancelled?"
+    language:
+      label: "Language"
+      type: language
+      rdf: http://purl.org/dc/terms/language

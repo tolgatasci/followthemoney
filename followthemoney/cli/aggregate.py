@@ -1,21 +1,23 @@
 import click
+import logging
+from typing import Dict
+
+from followthemoney.proxy import EntityProxy
 from followthemoney.namespace import Namespace
-
 from followthemoney.cli.cli import cli
-from followthemoney.cli.util import read_entity, write_object
+from followthemoney.cli.util import read_entities, write_object
+
+log = logging.getLogger(__name__)
 
 
-@cli.command('aggregate', help="Aggregate multiple fragments of entities")
-@click.option('-i', '--infile', type=click.File('r'), default='-')  # noqa
-@click.option('-o', '--outfile', type=click.File('w'), default='-')  # noqa
+@cli.command("aggregate", help="Aggregate multiple fragments of entities")
+@click.option("-i", "--infile", type=click.File("r"), default="-")  # noqa
+@click.option("-o", "--outfile", type=click.File("w"), default="-")  # noqa
 def aggregate(infile, outfile):
-    buffer = {}
+    buffer: Dict[str, EntityProxy] = {}
     namespace = Namespace(None)
     try:
-        while True:
-            entity = read_entity(infile)
-            if entity is None:
-                break
+        for entity in read_entities(infile):
             entity = namespace.apply(entity)
             if entity.id in buffer:
                 buffer[entity.id].merge(entity)

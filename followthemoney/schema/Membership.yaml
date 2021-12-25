@@ -9,9 +9,17 @@ Membership:
     - role
     - startDate
     - endDate
+  required:
+    - member
+    - organization
+  caption:
+    - role
   edge:
-    source: organization
-    target: member
+    source: member
+    label: "belongs to"
+    target: organization
+    directed: true
+    caption: role
   properties:
     member:
       label: "Member"

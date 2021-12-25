@@ -134,6 +134,7 @@
       ],
       "description": "Non-family association between two people"
     },
+
     "Representation": {
       "label": "Representation",
       "plural": "Representation",
@@ -740,6 +741,41 @@
         "passportNumber"
       ],
       "description": "Passport"
+    },
+    "Medicine": {
+      "label": "Medicine",
+      "plural": "Medicines",
+      "schemata": [
+        "Interval",
+        "Medicine"
+      ],
+      "extends": [
+        "Interval"
+      ],
+      "properties": {
+        "holder": {
+          "name": "holder",
+          "qname": "Medicine:holder",
+          "label": "Document holder",
+          "type": "entity",
+          "matchable": true,
+          "range": "LegalEntity",
+          "reverse": "medicine"
+        },
+        "name": {
+          "name": "name",
+          "qname": "Medicine:type",
+          "label": "Document type",
+          "type": "string"
+        }
+      },
+      "featured": [
+        "name"
+      ],
+      "caption": [
+        "name"
+      ],
+      "description": "Medicine"
     },
     "PublicBody": {
       "label": "Public body",

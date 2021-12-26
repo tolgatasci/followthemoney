@@ -3810,6 +3810,37 @@
         "Passport"
       ]
     },
+    "Medicine": {
+      "caption": [
+        "name"
+      ],
+      "description": "Medicine.\n",
+      "extends": [
+        "Identification"
+      ],
+      "featured": [
+        "name"
+      ],
+      "label": "Medicine",
+      "plural": "Medicines",
+      "properties": {
+
+        "name": {
+          "label": "Name",
+          "name": "name",
+          "qname": "Name:name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "schemata": [
+        "Identification",
+        "Interval",
+        "Medicine"
+      ]
+    },
     "Payment": {
       "caption": [
         "amount"

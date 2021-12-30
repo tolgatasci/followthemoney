@@ -14,3 +14,5 @@ Medicine:
   properties:
     name:
       label: "Medicine Name"
+    website:
+      label: "Website"

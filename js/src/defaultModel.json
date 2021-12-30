@@ -3824,20 +3824,25 @@
       "label": "Medicine",
       "plural": "Medicines",
       "properties": {
-
         "name": {
           "label": "Name",
           "name": "name",
           "qname": "Name:name",
           "type": "string"
+        },
+        "website": {
+          "description": "Website address",
+          "label": "Website",
+          "matchable": true,
+          "name": "website",
+          "qname": "LegalEntity:website",
+          "type": "url"
         }
       },
       "required": [
         "name"
       ],
       "schemata": [
-        "Identification",
-        "Interval",
         "Medicine"
       ]
     },
